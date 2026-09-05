@@ -2,37 +2,35 @@
 
 
 
-# [Mjölnir Worthiness Evaluation System] 
+# Mjölnir Worthiness Evaluation System
 
 
 ## Basic Details
-### Team Name: [Adithyan's Team]
+### Team Name: Adithyan's Team
 
 
 ### Team Members
-- Team Lead: [Adithyan K] - [SCMS SCHOOL OF ENGINEERING AND TECHNOLOGY]
+- Team Lead: Adithyan K - SCMS SCHOOL OF ENGINEERING AND TECHNOLOGY
 
 ### Project Description
-[An ESP8266 and MPU6050 powered Mjölnir that uses TinyML to analyze how you handle the hammer. It records your movements, classifies them, and determines whether you are worthy or not.]
+An ESP8266 and MPU6050 powered Mjölnir that uses TinyML to analyze how you handle the hammer. It records your movements, classifies them, and determines whether you are worthy or not.
 
 ### The Problem (that doesn't exist)
-[What ridiculous problem are you solving?]
+People have spent centuries wondering who is worthy of wielding Mjölnir. Apparently, nobody thought to automate the decision. This project solves the completely unnecessary problem of determining whether someone is worthy of lifting Thor’s hammer using motion data and TinyML.
 
 ### The Solution (that nobody asked for)
-[How are you solving it? Keep it fun!]
+We strapped an MPU6050 to Mjölnir, connected it to an ESP8266, and taught it to judge human movement using TinyML. The hammer watches how you lift, swing, shake, or simply stand there, then delivers the verdict that absolutely nobody asked for.
 
 ## Technical Details
-### Technologies/Components Used
-For Software:
-- [Languages used]
-- [Frameworks used]
-- [Libraries used]
-- [Tools used]
 
-For Hardware:
-- [List main components]
-- [List specifications]
-- [List tools required]
+### Technologies/Components Used
+
+- ESP8266: Main microcontroller and handles the web interface
+- MPU6050: 6-axis accelerometer and gyroscope for capturing motion
+- TinyML: Logistic Regression model for motion classification
+- Arduino IDE: Firmware development and uploading
+- C/C++: Embedded firmware
+- HTML, CSS & JavaScript: web interface
 
 ### Implementation
 For Software:
@@ -43,27 +41,11 @@ For Software:
 [commands]
 
 ### Project Documentation
-For Software:
-
-# Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
-
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
-
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
-
-# Diagrams
-![Workflow](Add your workflow/architecture diagram here)
-*Add caption explaining your workflow*
-
-For Hardware:
 
 # Schematic & Circuit
-![Circuit](Add your circuit diagram here)
-*Add caption explaining connections*
+<img width="1536" height="1024" alt="ChatGPT Image Sep 6, 2026, 04_33_35 AM" src="https://github.com/user-attachments/assets/cfdd97db-c727-446e-995d-cf95ce5d38f4" />
+
+The MPU6050 is connected to the ESP8266 using I2C. VCC is connected to 3.3V, GND to GND, SDA to D2 (GPIO4), and SCL to D1 (GPIO5). The remaining MPU6050 pins are left unconnected.
 
 ![Schematic](Add your schematic diagram here)
 *Add caption explaining the schematic*
