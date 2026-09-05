@@ -32,13 +32,6 @@ We strapped an MPU6050 to Mjölnir, connected it to an ESP8266, and taught it to
 - C/C++: Embedded firmware
 - HTML, CSS & JavaScript: web interface
 
-### Implementation
-For Software:
-# Installation
-[commands]
-
-# Run
-[commands]
 
 ### Project Documentation
 
@@ -47,31 +40,47 @@ For Software:
 
 The MPU6050 is connected to the ESP8266 using I2C. VCC is connected to 3.3V, GND to GND, SDA to D2 (GPIO4), and SCL to D1 (GPIO5). The remaining MPU6050 pins are left unconnected.
 
-![Schematic](Add your schematic diagram here)
-*Add caption explaining the schematic*
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/f519a974-67ae-47cd-bbf3-50d6b2eef948" />
+
+The schematic shows the ESP8266 and MPU6050 connected through the I²C interface, with D2 (GPIO4) used for SDA and D1 (GPIO5) used for SCL. Both modules share a common 3.3V supply and ground, while the unused MPU6050 pins are left unconnected.
 
 # Build Photos
-![Components](Add photo of your components here)
-*List out all components shown*
 
-![Build](Add photos of build process here)
-*Explain the build steps*
+<img width="1600" height="900" alt="WhatsApp Image 2026-09-06 at 4 31 14 AM (2)" src="https://github.com/user-attachments/assets/6097c886-30eb-4853-adf8-200ee8b42659" />
 
-![Final](Add photo of final product here)
-*Explain the final build*
+The image shows the inner part of the hammer head, consisting of an ESP8266 and an MPU6050
+
+<img width="900" height="1600" alt="WhatsApp Image 2026-09-06 at 4 31 14 AM" src="https://github.com/user-attachments/assets/48351b54-d249-4ace-91b8-4e117b924cc7" />
+
+- Connect the MPU6050 to the ESP8266 using I²C, with SDA connected to D2 (GPIO4) and SCL connected to D1 (GPIO5).
+- Set up the ESP8266 firmware to read acceleration and gyroscope data from the MPU6050.
+- Collect motion data for different actions such as IDLE, LIFT, SWING, and SHAKE.
+- Train the TinyML model using the collected motion data and extract the most useful motion features.
+- Deploy the trained model to the ESP8266 for on-device motion classification.
+- Build the web interface to display the motion, confidence, worthiness score, and final verdict.
+- Connect the web interface to the ESP8266, allowing the user to start a worthiness trial directly from the browser.
+- Run the trial by collecting a short motion window, classifying it, and displaying the final WORTHY or NOT WORTHY verdict.
+
+<img width="900" height="1600" alt="WhatsApp Image 2026-09-06 at 4 31 14 AM (1)" src="https://github.com/user-attachments/assets/d4b17645-0a96-4634-bc5a-3d26a0e8f6ae" />
+
+The final build consists of an ESP8266 and MPU6050 working together to evaluate the user's motion. The MPU6050 captures acceleration and gyroscope data, while the ESP8266 processes the data using the TinyML model and determines the type of movement.
+
+The ESP8266 also hosts a web interface where the user can start the worthiness trial and view the motion, confidence, score, and final WORTHY or NOT WORTHY verdict.
+
+<img width="722" height="1600" alt="image" src="https://github.com/user-attachments/assets/228e0301-191f-4488-be3c-f7f2b533859b" />
+
+<img width="722" height="1600" alt="image" src="https://github.com/user-attachments/assets/052dcada-ec70-46ba-a07c-99f26648b822" />
+
+The image consist of the web interface.
 
 ### Project Demo
-# Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
 
-# Additional Demos
-[Add any extra demo materials/links]
+# Video
+[https://drive.google.com/file/d/1dUhmisIHGxUUYNEgrb0NRKkWY83q-mWO/view?usp=drivesdk]
+Th video demonstrates the components, the working and also a working of the project.
 
 ## Team Contributions
-- [Name 1]: [Specific contributions]
-- [Name 2]: [Specific contributions]
-- [Name 3]: [Specific contributions]
+- Adithyan K -I've done all the work by myself.
 
 ---
 Made with ❤️ at TinkerHub Useless Projects 
