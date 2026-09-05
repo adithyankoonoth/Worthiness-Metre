@@ -85,10 +85,40 @@ int classify(float *features, float *scoresOut) {
   return best;
 }
 
+float confidenceFromScores(const float *scores) {
+  float maxScore = scores[0];
+  float sumExp = 0.0f;
+  for (int c = 0; c < 4; ++c) {
+    if (scores[c] > maxScore) maxScore = scores[c];
+  }
+  for (int c = 0; c < 4; ++c) {
+    sumExp += expf(scores[c] - maxScore);
+  }
+  return expf(maxScore - maxScore) / sumExp * 100.0f;
+}
+
+void printFeatures(const float *features) {
+  Serial.println("\n--- EXTRACTED FEATURES ---");
+  Serial.print("az_max       = "); Serial.println(features[0], 4);
+  Serial.print("gyromag_mean = "); Serial.println(features[1], 4);
+  Serial.print("accmag_mean  = "); Serial.println(features[2], 4);
+  Serial.print("gz_std       = "); Serial.println(features[3], 4);
+  Serial.print("gyromag_max  = "); Serial.println(features[4], 4);
+  Serial.print("az_mean      = "); Serial.println(features[5], 4);
+  Serial.print("gz_range     = "); Serial.println(features[6], 4);
+  Serial.print("gz_min       = "); Serial.println(features[7], 4);
+}
+
 void printResult(int prediction, const float *features, const float *scores) {
+  const float confidence = confidenceFromScores(scores);
+
   Serial.println("\n===== MJOLNIR WORTHINESS EVALUATION =====");
   Serial.print("Motion: ");
   Serial.println(MJ_CLASSES[prediction]);
+
+  Serial.print("Confidence: ");
+  Serial.print(confidence, 1);
+  Serial.println("%");
 
   Serial.print("Scores: ");
   for (int c = 0; c < 4; ++c) {
@@ -99,11 +129,13 @@ void printResult(int prediction, const float *features, const float *scores) {
   }
   Serial.println();
 
+  printFeatures(features);
+
   if (prediction == 3) {
-    Serial.println("WORTHY");
+    Serial.println("\nWORTHY");
     Serial.println("The hammer has accepted you.");
   } else {
-    Serial.println("NOT WORTHY");
+    Serial.println("\nNOT WORTHY");
     Serial.println("Thor has declined your application.");
   }
   Serial.println("==========================================");
