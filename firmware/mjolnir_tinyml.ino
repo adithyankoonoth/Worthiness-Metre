@@ -6,16 +6,283 @@
 #include <math.h>
 #include "model_parameters.h"
 #include "web_page.h"
-Adafruit_MPU6050 mpu; ESP8266WebServer server(80);
-const int SDA_PIN=4,SCL_PIN=5,WINDOW_SAMPLES=40,SAMPLE_DELAY_MS=50;
-float azSamples[WINDOW_SAMPLES],accMagSamples[WINDOW_SAMPLES],gyroMagSamples[WINDOW_SAMPLES],gzSamples[WINDOW_SAMPLES];
-int lastPrediction=0; float lastConfidence=0,lastScores[4]={0,0,0,0}; bool hasResult=false; bool evaluationRequested=false;
-float meanOf(const float*x,int n){float s=0;for(int i=0;i<n;i++)s+=x[i];return s/n;} float minOf(const float*x,int n){float v=x[0];for(int i=1;i<n;i++)if(x[i]<v)v=x[i];return v;} float maxOf(const float*x,int n){float v=x[0];for(int i=1;i<n;i++)if(x[i]>v)v=x[i];return v;} float stdOf(const float*x,int n){float m=meanOf(x,n),s=0;for(int i=0;i<n;i++){float d=x[i]-m;s+=d*d;}return sqrtf(s/n);}
-void collectWindow(){Serial.println("\nHold the hammer still, then perform a motion...");for(int i=0;i<WINDOW_SAMPLES;i++){sensors_event_t a,g,t;mpu.getEvent(&a,&g,&t);azSamples[i]=a.acceleration.z;accMagSamples[i]=sqrtf(a.acceleration.x*a.acceleration.x+a.acceleration.y*a.acceleration.y+a.acceleration.z*a.acceleration.z);gyroMagSamples[i]=sqrtf(g.gyro.x*g.gyro.x+g.gyro.y*g.gyro.y+g.gyro.z*g.gyro.z);gzSamples[i]=g.gyro.z;delay(SAMPLE_DELAY_MS);}}
-int classify(float*f,float*s){for(int c=0;c<4;c++){float v=MJ_BIAS[c];for(int i=0;i<8;i++)v+=MJ_COEF[c][i]*((f[i]-MJ_FEATURE_MEAN[i])/MJ_FEATURE_STD[i]);s[c]=v;}int b=0;for(int c=1;c<4;c++)if(s[c]>s[b])b=c;return b;} float confidenceFromScores(const float*s){float m=s[0];for(int c=1;c<4;c++)if(s[c]>m)m=s[c];float e=0;for(int c=0;c<4;c++)e+=expf(s[c]-m);return 100.0f/e;}
-void evaluateHammer(){evaluationRequested=false;collectWindow();float f[8];f[0]=maxOf(azSamples,40);f[1]=meanOf(gyroMagSamples,40);f[2]=meanOf(accMagSamples,40);f[3]=stdOf(gzSamples,40);f[4]=maxOf(gyroMagSamples,40);f[5]=meanOf(azSamples,40);f[6]=maxOf(gzSamples,40)-minOf(gzSamples,40);f[7]=minOf(gzSamples,40);lastPrediction=classify(f,lastScores);lastConfidence=confidenceFromScores(lastScores);hasResult=true;Serial.println("\n===== MJOLNIR WORTHINESS EVALUATION =====");Serial.print("Motion: ");Serial.println(MJ_CLASSES[lastPrediction]);Serial.print("Confidence: ");Serial.print(lastConfidence,1);Serial.println("%");Serial.print("Scores: ");for(int c=0;c<4;c++){Serial.print(MJ_CLASSES[c]);Serial.print("=");Serial.print(lastScores[c],3);if(c<3)Serial.print(" | ");}Serial.println();Serial.println(lastPrediction==3?"\nWORTHY":"\nNOT WORTHY");Serial.println(lastPrediction==3?"The hammer has accepted you.":"Thor has declined your application.");}
-void handleStatus(){String j="{\"evaluated\":"+String(hasResult?"true":"false");j+=",\"busy\":"+String(evaluationRequested?"true":"false");j+=",\"motion\":\""+String(MJ_CLASSES[lastPrediction])+"\"";j+=",\"confidence\":"+String(lastConfidence,1);j+=",\"worthy\":"+String(lastPrediction==3?"true":"false");j+=",\"score\":"+String(lastPrediction==3?100:0);j+=",\"message\":\""+String(lastPrediction==3?"The hammer has accepted you.":"Thor has declined your application.")+"\"}";server.send(200,"application/json",j);}
-void handleEvaluate(){if(!evaluationRequested){evaluationRequested=true;server.send(202,"application/json","{\"started\":true}");}else server.send(409,"application/json","{\"started\":false}");}
-void setupWebServer(){WiFi.mode(WIFI_AP);WiFi.softAP("MJOLNIR","worthy123");server.on("/",HTTP_GET,[](){server.send_P(200,"text/html",MJOLNIR_WEB_PAGE);});server.on("/api/status",HTTP_GET,handleStatus);server.on("/api/evaluate",HTTP_POST,handleEvaluate);server.begin();Serial.println("\nMJOLNIR WiFi network: MJOLNIR");Serial.println("Password: worthy123");Serial.print("Dashboard: http://");Serial.println(WiFi.softAPIP());}
-void setup(){Serial.begin(115200);delay(500);Wire.begin(SDA_PIN,SCL_PIN);if(!mpu.begin()){Serial.println("MPU6050 not found. Check wiring.");while(true)delay(1000);}mpu.setAccelerometerRange(MPU6050_RANGE_8_G);mpu.setGyroRange(MPU6050_RANGE_500_DEG);mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);setupWebServer();Serial.println("Mjolnir TinyML evaluator ready.");Serial.println("Press any key in Serial Monitor to evaluate.");}
-void loop(){server.handleClient();if(evaluationRequested)evaluateHammer();if(Serial.available()){while(Serial.available())Serial.read();evaluationRequested=true;}}
+
+Adafruit_MPU6050 mpu;
+ESP8266WebServer server(80);
+
+const int SDA_PIN = 4;
+const int SCL_PIN = 5;
+const int WINDOW_SAMPLES = 40;
+const int SAMPLE_DELAY_MS = 50;
+
+float azSamples[WINDOW_SAMPLES];
+float accMagSamples[WINDOW_SAMPLES];
+float gyroMagSamples[WINDOW_SAMPLES];
+float gzSamples[WINDOW_SAMPLES];
+
+int lastPrediction = 0;
+float lastConfidence = 0.0f;
+float lastScores[4] = {0, 0, 0, 0};
+bool hasResult = false;
+bool evaluationRequested = false;
+
+float meanOf(const float *values, int count) {
+  float sum = 0.0f;
+  for (int i = 0; i < count; i++) sum += values[i];
+  return sum / count;
+}
+
+float minOf(const float *values, int count) {
+  float value = values[0];
+  for (int i = 1; i < count; i++) {
+    if (values[i] < value) value = values[i];
+  }
+  return value;
+}
+
+float maxOf(const float *values, int count) {
+  float value = values[0];
+  for (int i = 1; i < count; i++) {
+    if (values[i] > value) value = values[i];
+  }
+  return value;
+}
+
+float stdOf(const float *values, int count) {
+  float mean = meanOf(values, count);
+  float sum = 0.0f;
+
+  for (int i = 0; i < count; i++) {
+    float difference = values[i] - mean;
+    sum += difference * difference;
+  }
+
+  return sqrtf(sum / count);
+}
+
+void collectWindow() {
+  Serial.println();
+  Serial.println("===== MJOLNIR TRIAL STARTED =====");
+  Serial.println("Hold the hammer ready...");
+  Serial.println("Perform your motion NOW.");
+
+  for (int i = 0; i < WINDOW_SAMPLES; i++) {
+    sensors_event_t accel;
+    sensors_event_t gyro;
+    sensors_event_t temperature;
+
+    mpu.getEvent(&accel, &gyro, &temperature);
+
+    float ax = accel.acceleration.x;
+    float ay = accel.acceleration.y;
+    float az = accel.acceleration.z;
+
+    float gx = gyro.gyro.x;
+    float gy = gyro.gyro.y;
+    float gz = gyro.gyro.z;
+
+    azSamples[i] = az;
+    accMagSamples[i] = sqrtf(ax * ax + ay * ay + az * az);
+    gyroMagSamples[i] = sqrtf(gx * gx + gy * gy + gz * gz);
+    gzSamples[i] = gz;
+
+    delay(SAMPLE_DELAY_MS);
+  }
+}
+
+int classify(float *features, float *scoresOut) {
+  for (int c = 0; c < 4; c++) {
+    float score = MJ_BIAS[c];
+
+    for (int i = 0; i < 8; i++) {
+      float normalized =
+        (features[i] - MJ_FEATURE_MEAN[i]) / MJ_FEATURE_STD[i];
+
+      score += MJ_COEF[c][i] * normalized;
+    }
+
+    scoresOut[c] = score;
+  }
+
+  int bestClass = 0;
+
+  for (int c = 1; c < 4; c++) {
+    if (scoresOut[c] > scoresOut[bestClass]) {
+      bestClass = c;
+    }
+  }
+
+  return bestClass;
+}
+
+float confidenceFromScores(const float *scores) {
+  float maximum = scores[0];
+
+  for (int c = 1; c < 4; c++) {
+    if (scores[c] > maximum) maximum = scores[c];
+  }
+
+  float sumExp = 0.0f;
+
+  for (int c = 0; c < 4; c++) {
+    sumExp += expf(scores[c] - maximum);
+  }
+
+  return 100.0f / sumExp;
+}
+
+void evaluateHammer() {
+  evaluationRequested = false;
+  collectWindow();
+
+  float features[8];
+
+  features[0] = maxOf(azSamples, WINDOW_SAMPLES);
+  features[1] = meanOf(gyroMagSamples, WINDOW_SAMPLES);
+  features[2] = meanOf(accMagSamples, WINDOW_SAMPLES);
+  features[3] = stdOf(gzSamples, WINDOW_SAMPLES);
+  features[4] = maxOf(gyroMagSamples, WINDOW_SAMPLES);
+  features[5] = meanOf(azSamples, WINDOW_SAMPLES);
+  features[6] = maxOf(gzSamples, WINDOW_SAMPLES)
+                 - minOf(gzSamples, WINDOW_SAMPLES);
+  features[7] = minOf(gzSamples, WINDOW_SAMPLES);
+
+  lastPrediction = classify(features, lastScores);
+  lastConfidence = confidenceFromScores(lastScores);
+  hasResult = true;
+
+  Serial.println();
+  Serial.println("===== MJOLNIR WORTHINESS EVALUATION =====");
+  Serial.print("Motion: ");
+  Serial.println(MJ_CLASSES[lastPrediction]);
+
+  Serial.print("Confidence: ");
+  Serial.print(lastConfidence, 1);
+  Serial.println("%");
+
+  Serial.print("Scores: ");
+  for (int c = 0; c < 4; c++) {
+    Serial.print(MJ_CLASSES[c]);
+    Serial.print("=");
+    Serial.print(lastScores[c], 3);
+
+    if (c < 3) Serial.print(" | ");
+  }
+  Serial.println();
+
+  if (lastPrediction == 3) {
+    Serial.println("\nWORTHY");
+    Serial.println("The hammer has accepted you.");
+  } else {
+    Serial.println("\nNOT WORTHY");
+    Serial.println("Thor has declined your application.");
+  }
+
+  Serial.println("==========================================");
+}
+
+void handleStatus() {
+  String json = "{";
+
+  json += "\"evaluated\":";
+  json += hasResult ? "true" : "false";
+
+  json += ",\"busy\":";
+  json += evaluationRequested ? "true" : "false";
+
+  json += ",\"motion\":\"";
+  json += MJ_CLASSES[lastPrediction];
+  json += "\"";
+
+  json += ",\"confidence\":";
+  json += String(lastConfidence, 1);
+
+  json += ",\"worthy\":";
+  json += lastPrediction == 3 ? "true" : "false";
+
+  json += ",\"score\":";
+  json += lastPrediction == 3 ? "100" : "0";
+
+  json += ",\"message\":\"";
+  json += lastPrediction == 3
+    ? "The hammer has accepted you."
+    : "Thor has declined your application.";
+  json += "\"";
+
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleEvaluate() {
+  if (evaluationRequested) {
+    server.send(409, "application/json", "{\"started\":false}");
+    return;
+  }
+
+  evaluationRequested = true;
+  server.send(202, "application/json", "{\"started\":true}");
+}
+
+void setupWebServer() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("MJOLNIR", "worthy123");
+
+  server.on("/", HTTP_GET, []() {
+    server.send_P(200, "text/html", MJOLNIR_WEB_PAGE);
+  });
+
+  server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/api/evaluate", HTTP_POST, handleEvaluate);
+
+  server.begin();
+
+  Serial.println();
+  Serial.println("===== ASGARDIAN NETWORK =====");
+  Serial.println("Network : MJOLNIR");
+  Serial.println("Password: worthy123");
+  Serial.print("Portal  : http://");
+  Serial.println(WiFi.softAPIP());
+  Serial.println("==============================");
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  if (!mpu.begin()) {
+    Serial.println("MPU6050 not found. Check wiring.");
+    while (true) {
+      delay(1000);
+    }
+  }
+
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+
+  setupWebServer();
+
+  Serial.println("MJOLNIR TinyML evaluator ready.");
+  Serial.println("Press the web button or send any Serial character.");
+}
+
+void loop() {
+  server.handleClient();
+
+  if (evaluationRequested) {
+    evaluateHammer();
+  }
+
+  if (Serial.available()) {
+    while (Serial.available()) {
+      Serial.read();
+    }
+
+    if (!evaluationRequested) {
+      evaluationRequested = true;
+    }
+  }
+}
