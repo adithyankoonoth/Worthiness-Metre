@@ -2,20 +2,18 @@
 
 
 
-# [Project Name] 🎯
+# [Mjölnir Worthiness Evaluation System] 
 
 
 ## Basic Details
-### Team Name: [Name]
+### Team Name: [Adithyan's Team]
 
 
 ### Team Members
-- Team Lead: [Name] - [College]
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+- Team Lead: [Adithyan K] - [SCMS SCHOOL OF ENGINEERING AND TECHNOLOGY]
 
 ### Project Description
-[2-3 lines about what your project does]
+[An ESP8266 and MPU6050 powered Mjölnir that uses TinyML to analyze how you handle the hammer. It records your movements, classifies them, and determines whether you are worthy or not.]
 
 ### The Problem (that doesn't exist)
 [What ridiculous problem are you solving?]
