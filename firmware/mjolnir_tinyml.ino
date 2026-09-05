@@ -2,7 +2,7 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <math.h>
-#include "../ml/model_parameters.h"
+#include "model_parameters.h"
 
 Adafruit_MPU6050 mpu;
 
